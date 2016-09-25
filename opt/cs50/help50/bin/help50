@@ -1,5 +1,28 @@
 #!/bin/bash -i
 
+function buffer()
+{
+    local buffer=""
+    local stdout=""
+    while true
+    do
+        IFS= read -N 1 -t 0.1 char
+        local status=$?
+        if [[ $status -eq 0 ]]; then
+            buffer+="$char"
+            stdout+="$char"
+        elif [[ $status -gt 128 ]]; then
+            if [[ ${#buffer} -gt 0 ]]; then
+                echo -n "$buffer" >&3
+                buffer=""
+            fi
+        else
+            break
+        fi
+    done
+    echo "$stdout"
+}
+
 # input via stdin
 # http://stackoverflow.com/a/18766794/5156190
 if [ $# -eq 0 ]; then
@@ -16,7 +39,7 @@ if [ $# -eq 0 ]; then
 # http://stackoverflow.com/a/12451419/5156190
 else
     exec 3>&1
-    script=$(stdbuf -e 0 -o 0 bash -c -i "trap echo INT ; $*" |& tee >(cat - >&3))
+    script=$(stdbuf -e 0 -o 0 bash -c -i "trap echo INT ; $*" |& buffer)
 fi
 
 # URL for POST
